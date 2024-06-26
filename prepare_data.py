@@ -13,11 +13,12 @@ import splitfolders
 
 # Show data
 img_show = cv2.imread("Land-cover_dataset/images/M-33-48-A-c-4-4.tif")
-plt.imshow(img_show)
+#plt.imshow(img_show)
 mask_show = cv2.imread("Land-cover_dataset/masks/M-33-48-A-c-4-4.tif")
-plt.imshow(mask_show[:, :, 2])
+#plt.imshow(mask_show[:, :, 2])
 
 # Compare image and mask on one plot
+# Do this in function
 plt.figure(figsize=(12, 8))
 plt.subplot(121)
 plt.imshow(img_show)
@@ -29,11 +30,15 @@ plt.show()
 
 labels, count_pixels = np.unique(mask_show[:, :, 2], True)
 print(labels)  # [0 1 2 3 4] (other, building, woodland, water, road)
-print(count_pixels)  # [48049205    46774 31169179  4760893   580366] (how many pixels)
+print(count_pixels)  # how many pixels
 
 ##############################################################
 
 # MAIN PROGRAM
+# Make directories
+os.makedirs('Land-cover_dataset/256_patches/images/', True)
+os.makedirs('Land-cover_dataset/256_patches/masks/', True)
+
 # Crop image into patches of 256x256 and save them into a directory
 patch_size = 256
 
@@ -52,7 +57,7 @@ def patch_image(data_types):  # data_types - images or masks
             image_path = os.path.join(type_path, image_name)
             # print(image_path)  # Example Land-cover_dataset/images/M-33-20-D-c-4-2.tif
             image = cv2.imread(image_path, 1)  # 1, because RGB
-            # print(image.shape, image_name) # Example (9429, 8973, 3) M-33-48-A-c-4-4.tif (height, width, RGB)
+            # print(image.shape, image_name)
             if image is not None:
                 # Calculate the nearest size divisible by patch_size
                 image_height = (image.shape[1] // patch_size) * patch_size
@@ -66,7 +71,6 @@ def patch_image(data_types):  # data_types - images or masks
                 patches_img = patchify(image, (patch_size, patch_size, 3), patch_size)  # 3, because channel RGB
                 output_dir = os.path.join("Land-cover_dataset", "256_patches", data_types)
                 # print(output_dir) # Land-cover_dataset\256_patches\images
-                os.makedirs(output_dir, True)
                 for i in range(patches_img.shape[0]):
                     for j in range(patches_img.shape[1]):
                         single_patch = patches_img[i, j, 0, :, :, :]  # (num_patches_x, num_patches_y, 1, patch_size,
@@ -79,8 +83,9 @@ def patch_image(data_types):  # data_types - images or masks
 patch_image("images")
 patch_image("masks")
 
-img_show = cv2.imread("Land-cover_dataset/256_patches/images/M-33-20-D-c-4-2.tif_patch_23_3.tif")
-mask_show = cv2.imread("Land-cover_dataset/256_patches/masks/M-33-20-D-c-4-2.tif_patch_23_3.tif")
+# SHOW 256x256
+img_show = cv2.imread("Land-cover_dataset/256_patches/images/N-33-104-A-c-1-1.tif_patch_31_1.tif")
+mask_show = cv2.imread("Land-cover_dataset/256_patches/masks/N-33-104-A-c-1-1.tif_patch_31_1.tif")
 
 plt.figure(figsize=(12, 8))
 plt.subplot(121)
@@ -95,6 +100,8 @@ plt.show()
 #######################################
 
 # I do this in function
+
+# REMOVE USELESS IMAGES
 train_images_dir = "Land-cover_dataset/256_patches/images/"
 train_masks_dir = "Land-cover_dataset/256_patches/masks/"
 
@@ -126,9 +133,15 @@ print("Total useless images are: ", useless)
 
 input_folder = 'Land-cover_dataset/256_patches/images_with_useful_info/'
 output_folder = 'Land-cover_dataset/data_for_training_and_testing/'
+
+# SPLIT DATA to TRAINING AND VALIDATION
 splitfolders.ratio(input_folder, output=output_folder, seed=42, ratio=(.75, .25), group_prefix=None)
 
+# MOVE FILES for PYTORCH
+# I move them manually
+os.makedirs('Land-cover_dataset/keras_data/train_images/train/', True)
+os.makedirs('Land-cover_dataset/keras_data/train_masks/train/', True)
+os.makedirs('Land-cover_dataset/keras_data/val_images/val/', True)
+os.makedirs('Land-cover_dataset/keras_data/val_masks/val/', True)
 # END prepare data
 ###################################################################################################
-
-
