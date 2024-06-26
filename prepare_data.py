@@ -12,25 +12,87 @@ import splitfolders
 ############################################
 
 # Show data
-img_show = cv2.imread("Land-cover_dataset/images/M-33-48-A-c-4-4.tif")
-#plt.imshow(img_show)
-mask_show = cv2.imread("Land-cover_dataset/masks/M-33-48-A-c-4-4.tif")
-#plt.imshow(mask_show[:, :, 2])
+img = cv2.imread("Land-cover_dataset/images/M-33-48-A-c-4-4.tif")
+#plt.imshow(img)
+mask = cv2.imread("Land-cover_dataset/masks/M-33-48-A-c-4-4.tif")
+#plt.imshow(mask[:, :, 2])
 
-# Compare image and mask on one plot
-# Do this in function
-plt.figure(figsize=(12, 8))
-plt.subplot(121)
-plt.imshow(img_show)
-plt.title('Image')
-plt.subplot(122)
-plt.imshow(mask_show[:, :, 2], 'gray')
-plt.title('Mask')
-plt.show()
 
-labels, count_pixels = np.unique(mask_show[:, :, 2], True)
+def show_image_and_mask(image_path, mask_path):
+    # Read the image and mask
+    image_show = cv2.imread(image_path)
+    mask_show = cv2.imread(mask_path)
+
+    # Convert the image from BGR to RGB
+    img_show_rgb = cv2.cvtColor(image_show, cv2.COLOR_BGR2RGB)
+
+    # Create a figure to display the image and mask side by side
+    plt.figure(figsize=(12, 8))
+
+    # Display the image
+    plt.subplot(121)
+    plt.imshow(img_show_rgb)
+    plt.title('Image')
+
+    # Display the mask (assuming the mask is a single channel image)
+    plt.subplot(122)
+    plt.imshow(mask_show[:, :, 2], cmap='gray')  # Display the third channel of the mask
+    plt.title('Mask')
+
+    plt.show()
+
+
+image_path = "Land-cover_dataset/images/M-33-48-A-c-4-4.tif"
+mask_path = "Land-cover_dataset/masks/M-33-48-A-c-4-4.tif"
+show_image_and_mask(image_path, mask_path)
+
+
+labels, count_pixels = np.unique(mask[:, :, 2], True)
 print(labels)  # [0 1 2 3 4] (other, building, woodland, water, road)
 print(count_pixels)  # how many pixels
+
+mask_dir = 'Land-cover_dataset/masks/'
+
+# Initialize a dictionary to hold the aggregated pixel counts
+aggregated_counts = {}
+
+# Loop through each file in the mask directory
+for filename in os.listdir(mask_dir):
+    if filename.endswith(".tif"):  # Ensure we are only processing .tif files
+        # Read the image
+        img_path = os.path.join(mask_dir, filename)
+        img = cv2.imread(img_path)
+
+        # Ensure the image was read properly
+        if img is not None:
+            # Extract the label channel (assuming it's the third channel, index 2)
+            labels = img[:, :, 2]
+
+            # Get the unique labels and their counts in the current image
+            unique_labels, counts = np.unique(labels, return_counts=True)
+
+            # Aggregate the counts into the aggregated_counts dictionary
+            for label, count in zip(unique_labels, counts):
+                if label in aggregated_counts:
+                    aggregated_counts[label] += count
+                else:
+                    aggregated_counts[label] = count
+
+# Print the aggregated counts
+for label, count in aggregated_counts.items():
+    print(f'Label {label}: {count} pixels')
+
+# Plot the results
+labels = list(aggregated_counts.keys())
+pixel_counts = list(aggregated_counts.values())
+
+plt.figure(figsize=(12, 8))
+plt.bar(labels, pixel_counts, color='skyblue')
+plt.xlabel('Label')
+plt.ylabel('Pixel Count')
+plt.title('Pixel Count per Label in Land-cover Dataset')
+plt.xticks(labels)  # Set x-ticks to be the labels
+plt.show()
 
 ##############################################################
 
@@ -84,49 +146,50 @@ patch_image("images")
 patch_image("masks")
 
 # SHOW 256x256
-img_show = cv2.imread("Land-cover_dataset/256_patches/images/N-33-104-A-c-1-1.tif_patch_31_1.tif")
-mask_show = cv2.imread("Land-cover_dataset/256_patches/masks/N-33-104-A-c-1-1.tif_patch_31_1.tif")
-
-plt.figure(figsize=(12, 8))
-plt.subplot(121)
-plt.imshow(img_show)
-plt.title('Image')
-plt.subplot(122)
-plt.imshow(mask_show[:, :, 2], 'gray')
-plt.title('Mask')
-plt.show()
+image_path = "Land-cover_dataset/256_patches/images/N-33-104-A-c-1-1.tif_patch_31_1.tif"
+mask_path = "Land-cover_dataset/256_patches/masks/N-33-104-A-c-1-1.tif_patch_31_1.tif"
+show_image_and_mask(image_path, mask_path)
 
 # DON'T HAVE A LOT OF TIME, SPEED
 #######################################
 
-# I do this in function
-
 # REMOVE USELESS IMAGES
+# Define directories
 train_images_dir = "Land-cover_dataset/256_patches/images/"
 train_masks_dir = "Land-cover_dataset/256_patches/masks/"
 
+# List images and masks
 img_list = os.listdir(train_images_dir)
 msk_list = os.listdir(train_masks_dir)
 
-os.makedirs('Land-cover_dataset/256_patches/images_with_useful_info/images/', True)
-os.makedirs('Land-cover_dataset/256_patches/images_with_useful_info/masks/', True)
+# Create directories for filtered images and masks
+os.makedirs('Land-cover_dataset/256_patches/images_with_useful_info/images/', exist_ok=True)
+os.makedirs('Land-cover_dataset/256_patches/images_with_useful_info/masks/', exist_ok=True)
+os.makedirs('Land-cover_dataset/256_patches/images_with_useless_info/images/', exist_ok=True)
+os.makedirs('Land-cover_dataset/256_patches/images_with_useless_info/masks/', exist_ok=True)
 
 useless = 0
 
-# If mask has useless information, remove it
+# Filter and copy images and masks
 for img in range(len(img_list)):
     img_name = img_list[img]
     mask_name = msk_list[img]
 
-    temp_image = cv2.imread(train_images_dir + img_list[img], 1)  # Read image
-    temp_mask = cv2.imread(train_masks_dir + msk_list[img], 0)  # Read mask
-    val, counts = np.unique(temp_mask, True)  # Get unique values and their counts in the mask
+    temp_image = cv2.imread(os.path.join(train_images_dir, img_name), 1)  # Read image
+    temp_mask = cv2.imread(os.path.join(train_masks_dir, mask_name), 0)  # Read mask
+    val, counts = np.unique(temp_mask, return_counts=True)  # Get unique values and their counts in the mask
 
     if (1 - (counts[0] / counts.sum())) > 0.05:  # Check if more than 5% of the mask is not zero
-        cv2.imwrite('Land-cover_dataset/256_patches/images_with_useful_info/images/' + img_name, temp_image)
-        cv2.imwrite('Land-cover_dataset/256_patches/images_with_useful_info/masks/' + mask_name, temp_mask)
+        cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useful_info/images/', img_name),
+                    temp_image)
+        cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useful_info/masks/', mask_name), temp_mask)
     else:
         useless += 1
+        if img % 1000 == 0:
+            cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useless_info/images/', img_name),
+                        temp_image)
+            cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useless_info/masks/', mask_name),
+                        temp_mask)
 
 print("Total useful images are: ", len(img_list) - useless)
 print("Total useless images are: ", useless)
