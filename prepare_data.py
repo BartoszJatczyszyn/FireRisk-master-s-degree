@@ -196,7 +196,7 @@ def filter_and_copy_images_masks(train_images_dir, train_masks_dir):
                         temp_mask)
         else:
             useless += 1
-            if img % 1000 == 0:
+            if useless % 200 == 0:
                 cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useless_info/images/', img_name),
                             temp_image)
                 cv2.imwrite(os.path.join('Land-cover_dataset/256_patches/images_with_useless_info/masks/', mask_name),
